@@ -2,11 +2,12 @@ import logging
 import logging.handlers
 import os
 from pathlib import Path
+import re
 
 logger = logging.getLogger("root")
 
-SOURCE_DIR = "C:/Notion-export/"
-DEST_DIR = "C:/Notion-export-dest/"
+SOURCE_PATH = "C:/Notion-export/"
+DEST_PATH = "C:/Notion-export-dest/"
 
 def setLogging():
     """logging module setup"""
@@ -33,21 +34,39 @@ def setLogging():
     # logging.basicConfig(filename='python.log', filemode='w', level=logging.DEBUG)
 
 def browser():
-    s_dir = Path(SOURCE_DIR)
-    d_dir = Path(DEST_DIR)
+    """
+    search for appropriate markdown files and call editor() accordingly
+    """
+    s_path = Path(SOURCE_PATH)
+    d_path = Path(DEST_PATH)
 
-    for x in s_dir.iterdir():
+    for x in s_path.iterdir():
         if x.is_dir():
             logger.info('folder: "{}"'.format(x))
         elif x.is_file():
             logger.info('file: "{}"'.format(x))
-            editor(x, d_dir)
+            logger.debug('rel_path: "{}"'.format(x.relative_to(SOURCE_PATH)))
+            editor(x, s_path, d_path)
 
         exit()  # only iterate once
 
-def editor(item, dest_path):
+def editor(item, s_path, d_path):
+    """
+    parse through item, create updated markdown file in d_path
+    
+    Parameters:
+    item: absolute path to the markdown file
+    s_path: SOURCE_PATH
+    d_path: DEST_PATH
+
+    Returns:
+    """
+    md_title = ''
+    md_creation_date = ''
+    md_tags = ''
+
     if(item.exists() == False):
-        logger.info('item does not exist: "{}"'.format(item))
+        logger.error('item does not exist: "{}"'.format(item))
         exit()  # die
     
     logger.debug('editor: "{}"'.format(item.name))
@@ -55,7 +74,29 @@ def editor(item, dest_path):
     with item.open(encoding='UTF8') as f:
         for lines in f.readlines():
             logger.debug('lines: "{}"'.format(lines[:-1]))  # remove line break from source
-        # logger.debug(f.readline())
+
+            # 1. search for title line
+            pattern = re.compile('(# ).+')
+            match = pattern.match(lines)
+            if not(match is None):
+                logger.info('title_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
+                md_title = match.group()
+
+            # 2. search for creation date
+            pattern = re.compile('(Created: ).+')
+            match = pattern.match(lines)
+            if not(match is None):
+                logger.info('created_date_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
+                md_creation_date = match.group()
+
+            # 3. search tags
+            pattern = re.compile('(Tags: ).+')
+            match = pattern.match(lines)
+            if not(match is None):
+                logger.info('tags_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
+                md_tags = match.group()
+        pass
+    
     
 
 def main():
@@ -68,5 +109,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
