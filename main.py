@@ -53,12 +53,36 @@ def rm_path(d_path):
             x.unlink()
             logger.debug('rm   : "{}"'.format(x.absolute()))
 
-def browser():
+def YAML_front_matter_composer(data: dict):
+    """
+    returns YAML front matter string
+    currently only supports single level dictionary parsing
+
+    Parameters:
+    data: dict type
+
+    Returns:
+    str containing YAML front matter
+    """
+    res = '---\n'
+
+    for x in data:
+        # if type(data[x]) is dict:
+        #     for y in data:
+        res += '{}: {}\n'.format(x, data[x])
+    
+    res += '---'
+
+    logger.info('YAML: \n"{}"'.format(res))
+
+    return res
+
+def browser(s_path, d_path):
     """
     search for appropriate markdown files and call editor() accordingly
     """
-    s_path = Path(SOURCE_PATH)
-    d_path = Path(DEST_PATH)
+    # s_path = Path(SOURCE_PATH)
+    # d_path = Path(DEST_PATH)
 
     for x in s_path.iterdir():
         if x.is_dir():
@@ -115,20 +139,43 @@ def editor(item, s_path, d_path):
             if not(match is None):
                 logger.info('tags_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
                 md_tags = match.group()
+
+    # refine the parsed data
+    md_creation_date
+
+    md_tags
+
+    # compose a dict variable with parsed data
+    parsed_data = {
+        'title': md_title,
+        'created': md_creation_date,
+        'tags': md_tags
+    }
     
     # create an updated MD file with YAML front matter
-    logger.info('abs_path: "{}"'.format(item.relative_to(s_path)))
-    new_file = d_path.touch(item.relative_to(s_path))
-    
+    logger.info('rel path: "{}"'.format(item.relative_to(s_path)))
+    new_item = d_path.joinpath(item.relative_to(s_path))
+    new_item.touch()
+
+    YAML_front_matter_composer(d)
+
 
 def main():
     setLogging()
 
     logger.info('Entry: notion-obsidian-migration-tool')
 
+    if not Path(SOURCE_PATH).exists():
+        logger.warn('SOURCE_PATH not found')
+        exit()
+    
+    if not Path(DEST_PATH).exists():
+        logger.warn('DEST_PATH not found, creating one...')
+        Path(DEST_PATH).mkdir()        
+
     rm_path(Path(DEST_PATH))
 
-    browser()
+    browser(Path(SOURCE_PATH), Path(DEST_PATH))
 
 
 if __name__ == '__main__':
