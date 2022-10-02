@@ -3,6 +3,8 @@ import logging.handlers
 import os
 from pathlib import Path
 import re
+from dateutil.parser import parse
+import datetime
 
 logger = logging.getLogger("root")
 
@@ -41,7 +43,7 @@ def rm_path(d_path):
 
     # d_path = Path(d_path)
 
-    logger.info('rm_path: "{}"'.format(d_path))
+    logger.debug('rm_path(): "{}"'.format(d_path))
     # logger.info('disk_usage of d_path: "{}"'.format(shutil.disk_usage(d_path)))
 
     for x in d_path.iterdir():
@@ -52,7 +54,7 @@ def rm_path(d_path):
             x.rmdir()
         elif x.is_file():
             x.unlink()
-            logger.debug('rm   : "{}"'.format(x.absolute()))
+            logger.debug('rm: "{}"'.format(x.absolute()))
 
 def YAML_front_matter_composer(data: dict):
     """
@@ -78,6 +80,44 @@ def YAML_front_matter_composer(data: dict):
 
     return res
 
+def md_title_checker(title: str):
+    """
+    remove markdown style hash, enforce windows file naming scheme
+
+    Reference: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
+    """
+    UNSUPPORTED_CHARS = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+
+    original_title = title
+
+    title = title.split('# ')[-1]
+    for c in UNSUPPORTED_CHARS:
+        title = title.replace(c, '')
+
+    logger.debug('md_title: "{}" -> "{}"'.format(original_title, title))
+
+    return title
+
+def md_cdate_checker(cdate: str):
+    """
+    parse notion style date format, return in YYYY-MM-DD format
+    """
+
+    original_cdate = cdate
+
+    cdate = cdate.split('Created: ')[-1]
+
+    # date conversion method 1 - from dateutil.parser import parse
+    dt = parse(cdate)
+    cdate = dt.date()
+
+    # date conversion method 2 - import datetime
+    # cdate = datetime.datetime.strptime(cdate, '%B %d, %Y %I:%M %p').strftime('%Y-%m-%d')
+
+    logger.debug('md_cdate: "{}" -> "{}"'.format(original_cdate, cdate))
+
+    return cdate
+
 def browser(s_path, d_path):
     """
     search for appropriate markdown files and call editor() accordingly
@@ -90,7 +130,6 @@ def browser(s_path, d_path):
             logger.info('folder: "{}"'.format(x))
         elif x.is_file():
             logger.info('file: "{}"'.format(x))
-            logger.debug('rel_path: "{}"'.format(x.relative_to(SOURCE_PATH)))
             editor(x, s_path, d_path)
 
         exit()  # only iterate once
@@ -118,7 +157,7 @@ def editor(item, s_path, d_path):
 
     with item.open(encoding='UTF8') as f:
         for lines in f.readlines():
-            logger.debug('lines: "{}"'.format(lines[:-1]))  # remove line break from source
+            # logger.debug('lines: "{}"'.format(lines[:-1]))  # remove line break from source
 
             # 1. search for title line
             pattern = re.compile('(# ).+')
@@ -142,7 +181,9 @@ def editor(item, s_path, d_path):
                 md_tags = match.group()
 
     # refine the parsed data
-    md_creation_date
+    md_title = md_title_checker(md_title)
+
+    md_creation_date = md_cdate_checker(md_creation_date)
 
     md_tags
 
@@ -154,11 +195,11 @@ def editor(item, s_path, d_path):
     }
     
     # create an updated MD file with YAML front matter
-    logger.info('rel path: "{}"'.format(item.relative_to(s_path)))
-    new_item = d_path.joinpath(item.relative_to(s_path))
+    logger.debug('rel path: "{}"'.format(item.relative_to(s_path)))
+    new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title)
     new_item.touch()
 
-    YAML_front_matter_composer(d)
+    YAML_front_matter_composer(parsed_data)
 
 
 def main():

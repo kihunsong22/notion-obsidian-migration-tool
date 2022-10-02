@@ -12,9 +12,15 @@ a simple python script to further refine markdown files after using [connertenne
 - run the script
 
 ## Notes
-The script will remove any files/folders under SOURCE_DEST every time you run it, so proceed with caution.
+This script **will remove any files/folders under `SOURCE_DEST`** every time you run it, so proceed with caution.
 
 #### dev note
 - https://docs.python.org/3/library/filesys.html
 - https://docs.python.org/3/library/pathlib.html#basic-use
+- https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
 
+#### features to implement
+- advanced filename checking function against windows naming scheme
+- edit metadata of created date
+    - fiddle with metadata
+- convert tags to obsidian supported style tags
