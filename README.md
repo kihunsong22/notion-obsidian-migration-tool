@@ -18,6 +18,7 @@ This script **will remove any files/folders under `SOURCE_DEST`** every time you
 - https://docs.python.org/3/library/filesys.html
 - https://docs.python.org/3/library/pathlib.html#basic-use
 - https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
+- https://www.tutorialspoint.com/python/time_strptime.htm
 
 #### features to implement
 - advanced filename checking function against windows naming scheme

@@ -94,6 +94,8 @@ def md_title_checker(title: str):
     for c in UNSUPPORTED_CHARS:
         title = title.replace(c, '')
 
+    title += '.md'
+
     logger.debug('md_title: "{}" -> "{}"'.format(original_title, title))
 
     return title
@@ -117,6 +119,27 @@ def md_cdate_checker(cdate: str):
     logger.debug('md_cdate: "{}" -> "{}"'.format(original_cdate, cdate))
 
     return cdate
+
+def md_tags_checker(tags: str):
+    """
+    parse notion style tags, return in obsidian style
+    """
+
+    original_tags = tags
+
+    tags = tags.split('Tags: ')[-1]  # remove 'Tags: '
+
+    # add hastags
+    tag_list = tags.split(', ')
+    tags = ''
+    for x in tag_list:
+        tags += '#{}, '.format(x)
+
+    tags = ', '.join(tags.split(', ')[:-1])  # remove last ', '
+
+    logger.debug('md_tags: "{}" -> "{}"'.format(original_tags, tags))
+
+    return tags
 
 def browser(s_path, d_path):
     """
@@ -185,7 +208,7 @@ def editor(item, s_path, d_path):
 
     md_creation_date = md_cdate_checker(md_creation_date)
 
-    md_tags
+    md_tags = md_tags_checker(md_tags)
 
     # compose a dict variable with parsed data
     parsed_data = {
@@ -195,11 +218,12 @@ def editor(item, s_path, d_path):
     }
     
     # create an updated MD file with YAML front matter
-    logger.debug('rel path: "{}"'.format(item.relative_to(s_path)))
     new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title)
     new_item.touch()
+    logger.debug('new item: "{}"'.format(new_item))
 
-    YAML_front_matter_composer(parsed_data)
+    if CREATE_YAML:
+        YAML_front_matter_composer(parsed_data)
 
 
 def main():
