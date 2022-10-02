@@ -8,6 +8,7 @@ logger = logging.getLogger("root")
 
 SOURCE_PATH = "C:/Notion-export/"
 DEST_PATH = "C:/Notion-export-dest/"  # CAUTION: WILL REMOVE EVERYTHING UNDER THIS DIRECTORY
+CREATE_YAML = True
 
 def setLogging():
     """logging module setup"""
