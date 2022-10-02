@@ -7,7 +7,7 @@ import re
 logger = logging.getLogger("root")
 
 SOURCE_PATH = "C:/Notion-export/"
-DEST_PATH = "C:/Notion-export-dest/"
+DEST_PATH = "C:/Notion-export-dest/"  # CAUTION: WILL REMOVE EVERYTHING UNDER THIS DIRECTORY
 
 def setLogging():
     """logging module setup"""
@@ -32,6 +32,26 @@ def setLogging():
     logger.setLevel(logging.DEBUG)
 
     # logging.basicConfig(filename='python.log', filemode='w', level=logging.DEBUG)
+
+def rm_path(d_path):
+    """
+    remove all files/folders inside of d_path
+    """
+
+    # d_path = Path(d_path)
+
+    logger.info('rm_path: "{}"'.format(d_path))
+    # logger.info('disk_usage of d_path: "{}"'.format(shutil.disk_usage(d_path)))
+
+    for x in d_path.iterdir():
+        if x.is_dir():
+            rm_path(x.absolute())
+
+            logger.debug('rmdir: "{}"'.format(x.absolute()))
+            x.rmdir()
+        elif x.is_file():
+            x.unlink()
+            logger.debug('rm   : "{}"'.format(x.absolute()))
 
 def browser():
     """
@@ -95,14 +115,18 @@ def editor(item, s_path, d_path):
             if not(match is None):
                 logger.info('tags_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
                 md_tags = match.group()
-        pass
     
+    # create an updated MD file with YAML front matter
+    logger.info('abs_path: "{}"'.format(item.relative_to(s_path)))
+    new_file = d_path.touch(item.relative_to(s_path))
     
 
 def main():
     setLogging()
 
     logger.info('Entry: notion-obsidian-migration-tool')
+
+    rm_path(Path(DEST_PATH))
 
     browser()
 
