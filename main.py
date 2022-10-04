@@ -76,7 +76,7 @@ def YAML_front_matter_composer(data: dict):
     
     res += '---'
 
-    logger.info('YAML: \n"{}"'.format(res))
+    logger.info('YAML: \n{}'.format(res))
 
     return res
 
@@ -93,8 +93,6 @@ def md_title_checker(title: str):
     title = title.split('# ')[-1]
     for c in UNSUPPORTED_CHARS:
         title = title.replace(c, '')
-
-    title += '.md'
 
     logger.debug('md_title: "{}" -> "{}"'.format(original_title, title))
 
@@ -141,6 +139,21 @@ def md_tags_checker(tags: str):
 
     return tags
 
+def md_data_encode(content: str):
+    """
+    encodes the data in UTF-8, converts line endings to LF
+
+    Returns: converted bytecode of input
+    """
+    WINDOWS_LINE_ENDING = b'\r\n'
+    UNIX_LINE_ENDING = b'\n'
+    
+    content = content.encode('utf-8')
+
+    content = content.replace(WINDOWS_LINE_ENDING, UNIX_LINE_ENDING)
+    
+    return content
+
 def browser(s_path, d_path):
     """
     search for appropriate markdown files and call editor() accordingly
@@ -171,6 +184,9 @@ def editor(item, s_path, d_path):
     md_title = ''
     md_creation_date = ''
     md_tags = ''
+    
+    md_body_str = ''
+    new_item = ''
 
     if(item.exists() == False):
         logger.error('item does not exist: "{}"'.format(item))
@@ -180,6 +196,7 @@ def editor(item, s_path, d_path):
 
     with item.open(encoding='UTF8') as f:
         for lines in f.readlines():
+            md_body_str += lines
             # logger.debug('lines: "{}"'.format(lines[:-1]))  # remove line break from source
 
             # 1. search for title line
@@ -218,13 +235,16 @@ def editor(item, s_path, d_path):
     }
     
     # create an updated MD file with YAML front matter
-    new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title)
+    new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
     new_item.touch()
-    logger.debug('new item: "{}"'.format(new_item))
+    logger.debug('path to new MD: "{}"'.format(new_item))
 
     if CREATE_YAML:
-        YAML_front_matter_composer(parsed_data)
-
+        md_body_str = YAML_front_matter_composer(parsed_data) + '\n' + md_body_str
+    
+    md_body_bc = md_data_encode(md_body_str)
+    # new_item.write_text(md_body_str)
+    new_item.write_bytes(md_body_bc)
 
 def main():
     setLogging()

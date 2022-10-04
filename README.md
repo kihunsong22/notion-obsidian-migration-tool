@@ -24,4 +24,3 @@ This script **will remove any files/folders under `SOURCE_DEST`** every time you
 - advanced filename checking function against windows naming scheme
 - edit metadata of created date
     - fiddle with metadata
-- convert tags to obsidian supported style tags
