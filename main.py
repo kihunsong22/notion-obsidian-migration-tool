@@ -154,19 +154,22 @@ def md_data_encode(content: str):
     
     return content
 
-def browser(s_path, d_path):
+def browser(current_path, s_path, d_path):
     """
     search for appropriate markdown files and call editor() accordingly
-    """
-    # s_path = Path(SOURCE_PATH)
-    # d_path = Path(DEST_PATH)
 
-    for x in s_path.iterdir():
+    Parameters:
+    current_path: current path to browse
+    s_path: absolute path of SOURCE_INPUT
+    d_path: absolute path of DEST_INPUUT
+    """
+    for x in current_path.iterdir():
         if x.is_dir():
             logger.info('folder: "{}"'.format(x))
+            browser(x, s_path, d_path)
         elif x.is_file():
             logger.info('file: "{}"'.format(x))
-            editor(x, s_path, d_path)
+            editor(x.absolute(), s_path, d_path)
 
         exit()  # only iterate once
 
@@ -192,7 +195,7 @@ def editor(item, s_path, d_path):
         logger.error('item does not exist: "{}"'.format(item))
         exit()  # die
     
-    logger.debug('editor: "{}"'.format(item.name))
+    logger.debug('editor: "{}"'.format(item.relative_to(s_path)))
 
     with item.open(encoding='UTF8') as f:
         for lines in f.readlines():
@@ -235,7 +238,26 @@ def editor(item, s_path, d_path):
     }
     
     # create an updated MD file with YAML front matter
+    # if not d_path.joinpath(item.relative_to(s_path).parent).exists():
+    #     logger.warn('creating dest directory: "{}"'.format(d_path.joinpath(item.relative_to(s_path).parent)))
+    #     d_path.joinpath(item.relative_to(s_path).parent).mkdir()
+    # new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
+
+    dest_folder = d_path.joinpath(item.relative_to(s_path).parent)
     new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
+
+    if not dest_folder.exists():
+        logger.warn('dest dir not found:"{}"'.format(dest_folder))
+        
+        while not dest_folder.exists():
+            temp_dir = dest_folder
+            while not temp_dir.exists():
+                if(temp_dir.parent.exists()):
+                    logger.debug('creating dest directory: "{}"'.format(temp_dir))
+                    temp_dir.mkdir()
+                else:
+                    temp_dir = temp_dir.parent
+
     new_item.touch()
     logger.debug('path to new MD: "{}"'.format(new_item))
 
@@ -256,12 +278,12 @@ def main():
         exit()
     
     if not Path(DEST_PATH).exists():
-        logger.warn('DEST_PATH not found, creating one...')
+        logger.warn('DEST_PATH not found, creating directory...')
         Path(DEST_PATH).mkdir()        
 
-    rm_path(Path(DEST_PATH))
+    rm_path(Path(DEST_PATH))  # clear destination path before proceeding
 
-    browser(Path(SOURCE_PATH), Path(DEST_PATH))
+    browser(Path(SOURCE_PATH), Path(SOURCE_PATH), Path(DEST_PATH))
 
 
 if __name__ == '__main__':
