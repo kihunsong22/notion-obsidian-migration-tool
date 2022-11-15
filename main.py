@@ -100,7 +100,8 @@ def md_title_checker(title: str):
 
 def md_cdate_checker(cdate: str):
     """
-    parse notion style date format, return in YYYY-MM-DD format
+    # parse notion style date format, return in YYYY-MM-DD format
+    parse notion style date format, returns datetime object
     """
 
     original_cdate = cdate
@@ -109,14 +110,12 @@ def md_cdate_checker(cdate: str):
 
     # date conversion method 1 - from dateutil.parser import parse
     dt = parse(cdate)
-    cdate = dt.date()
+    logger.debug('md_cdate: "{}" -> "{}, {}"'.format(original_cdate, dt.date(), dt.time()))
 
     # date conversion method 2 - import datetime
     # cdate = datetime.datetime.strptime(cdate, '%B %d, %Y %I:%M %p').strftime('%Y-%m-%d')
 
-    logger.debug('md_cdate: "{}" -> "{}"'.format(original_cdate, cdate))
-
-    return cdate
+    return dt
 
 def md_tags_checker(tags: str):
     """
@@ -171,7 +170,7 @@ def browser(current_path, s_path, d_path):
             logger.info('file: "{}"'.format(x))
             editor(x.absolute(), s_path, d_path)
 
-        exit()  # only iterate once
+        # exit()  # only iterate once
 
 def editor(item, s_path, d_path):
     """
@@ -189,7 +188,6 @@ def editor(item, s_path, d_path):
     md_tags = ''
     
     md_body_str = ''
-    new_item = ''
 
     if(item.exists() == False):
         logger.error('item does not exist: "{}"'.format(item))
@@ -226,31 +224,26 @@ def editor(item, s_path, d_path):
     # refine the parsed data
     md_title = md_title_checker(md_title)
 
-    md_creation_date = md_cdate_checker(md_creation_date)
+    md_dt_object = md_cdate_checker(md_creation_date)
+    # md_creation_time = md_cdate_checker(md_creation_date)
 
     md_tags = md_tags_checker(md_tags)
 
     # compose a dict variable with parsed data
     parsed_data = {
         'title': md_title,
-        'created': md_creation_date,
+        'created': md_dt_object.date(),
         'tags': md_tags
     }
-    
-    # create an updated MD file with YAML front matter
-    # if not d_path.joinpath(item.relative_to(s_path).parent).exists():
-    #     logger.warn('creating dest directory: "{}"'.format(d_path.joinpath(item.relative_to(s_path).parent)))
-    #     d_path.joinpath(item.relative_to(s_path).parent).mkdir()
-    # new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
 
-    dest_folder = d_path.joinpath(item.relative_to(s_path).parent)
-    new_item = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
+    dest_dir = d_path.joinpath(item.relative_to(s_path).parent)
+    dest_file = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
 
-    if not dest_folder.exists():
-        logger.warn('dest dir not found:"{}"'.format(dest_folder))
+    if not dest_dir.exists():
+        logger.warn('dest dir not found:"{}"'.format(dest_dir))
         
-        while not dest_folder.exists():
-            temp_dir = dest_folder
+        while not dest_dir.exists():
+            temp_dir = dest_dir
             while not temp_dir.exists():
                 if(temp_dir.parent.exists()):
                     logger.debug('creating dest directory: "{}"'.format(temp_dir))
@@ -258,15 +251,17 @@ def editor(item, s_path, d_path):
                 else:
                     temp_dir = temp_dir.parent
 
-    new_item.touch()
-    logger.debug('path to new MD: "{}"'.format(new_item))
+    dest_file.touch()
+    logger.debug('path to new MD: "{}"'.format(dest_file))
 
     if CREATE_YAML:
         md_body_str = YAML_front_matter_composer(parsed_data) + '\n' + md_body_str
     
     md_body_bc = md_data_encode(md_body_str)
-    # new_item.write_text(md_body_str)
-    new_item.write_bytes(md_body_bc)
+    dest_file.write_bytes(md_body_bc)
+
+    # change creation time metadata
+    os.utime(dest_file, times=(md_dt_object.timestamp(), md_dt_object.timestamp()))
 
 def main():
     setLogging()
