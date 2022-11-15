@@ -9,7 +9,7 @@ a simple python script to further refine markdown files after using [connertenne
 - [x] convert file names to match title
     - [ ] advanced filename checks against windows naming scheme
 - [x] use created date field inside MD file to edit metadata accordingly
-    - [ ] use datetime specified on the title first
+    - [x] use datetime specified on the title first if possible
 - [x] convert notion style tags to obsidian supported hashtags
 - [x] option to create YAML style front matter containing title, date, tags
 

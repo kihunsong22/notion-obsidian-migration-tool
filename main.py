@@ -98,21 +98,31 @@ def md_title_checker(title: str):
 
     return title
 
-def md_cdate_checker(cdate: str):
+def md_cdate_checker(cdate: str, title: str=''):
     """
-    # parse notion style date format, return in YYYY-MM-DD format
     parse notion style date format, returns datetime object
+    if possible, will use the date specified on the optional_title
     """
+
+    # parse from title first
+    original_title = title
+    title = title.split(' ')[0]
+    try:
+        dt_title = parse(title, yearfirst=True)
+        logger.debug('title_date: "{}" -> "{}, {}"'.format(original_title, dt_title.date(), dt_title.time()))
+    except:
+        dt_title = ''
 
     original_cdate = cdate
-
     cdate = cdate.split('Created: ')[-1]
-
-    # date conversion method 1 - from dateutil.parser import parse
     dt = parse(cdate)
     logger.debug('md_cdate: "{}" -> "{}, {}"'.format(original_cdate, dt.date(), dt.time()))
 
-    # date conversion method 2 - import datetime
+    if dt_title != '':
+        logger.debug('using date from md_title...')
+        dt = dt.combine(dt_title.date(), dt.time())
+
+    # alternative date conversion method - strptime()
     # cdate = datetime.datetime.strptime(cdate, '%B %d, %Y %I:%M %p').strftime('%Y-%m-%d')
 
     return dt
@@ -224,7 +234,7 @@ def editor(item, s_path, d_path):
     # refine the parsed data
     md_title = md_title_checker(md_title)
 
-    md_dt_object = md_cdate_checker(md_creation_date)
+    md_dt_object = md_cdate_checker(md_creation_date, md_title)
     # md_creation_time = md_cdate_checker(md_creation_date)
 
     md_tags = md_tags_checker(md_tags)
