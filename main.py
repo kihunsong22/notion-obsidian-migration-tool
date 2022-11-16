@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 from dateutil.parser import parse
 import datetime
+import filedate
 
 logger = logging.getLogger("root")
 
@@ -108,19 +109,13 @@ def md_cdate_checker(cdate: str, title: str=''):
     original_title = title
     title = title.split(' ')[0]
     try:
-        dt_title = parse(title, yearfirst=True)
-        logger.debug('title_date: "{}" -> "{}, {}"'.format(original_title, dt_title.date(), dt_title.time()))
+        dt = parse(title, yearfirst=True)
+        logger.debug('title_date: "{}" -> "{}, {}"'.format(original_title, dt.date(), dt.time()))
     except:
-        dt_title = ''
-
-    original_cdate = cdate
-    cdate = cdate.split('Created: ')[-1]
-    dt = parse(cdate)
-    logger.debug('md_cdate: "{}" -> "{}, {}"'.format(original_cdate, dt.date(), dt.time()))
-
-    if dt_title != '':
-        logger.debug('using date from md_title...')
-        dt = dt.combine(dt_title.date(), dt.time())
+        original_cdate = cdate
+        cdate = cdate.split('Created: ')[-1]
+        dt = parse(cdate)
+        logger.debug('md_cdate: "{}" -> "{}, {}"'.format(original_cdate, dt.date(), dt.time()))
 
     # alternative date conversion method - strptime()
     # cdate = datetime.datetime.strptime(cdate, '%B %d, %Y %I:%M %p').strftime('%Y-%m-%d')
@@ -270,8 +265,19 @@ def editor(item, s_path, d_path):
     md_body_bc = md_data_encode(md_body_str)
     dest_file.write_bytes(md_body_bc)
 
-    # change creation time metadata
-    os.utime(dest_file, times=(md_dt_object.timestamp(), md_dt_object.timestamp()))
+    # change file access/modification time
+    # os.utime(dest_file, (md_dt_object.timestamp(), md_dt_object.timestamp()))
+
+    # change file creation/modification/access time
+    dest_file_meta = filedate.File(dest_file)
+    logger.debug('dest_file: "{}"'.format(dest_file))
+    res = dest_file_meta.set(
+        created = md_dt_object.strftime("%F"),
+        modified = md_dt_object.strftime("%F")
+    )
+    logger.debug('filedate edit res: "{}"'.format(res))
+
+
 
 def main():
     setLogging()
