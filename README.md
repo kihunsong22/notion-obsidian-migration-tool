@@ -12,9 +12,14 @@ a simple python script to further refine markdown files after using [connertenne
     - [x] use datetime specified on the title first if possible
 - [x] convert notion style tags to obsidian supported hashtags
 - [x] option to create YAML style front matter containing title, date, tags
+- [ ] copy images and other data while leaving CSV data generated from Notion
 
 ## Notes
 This script **will remove any files/folders under `SOURCE_DEST`** every time you run it, so proceed with caution.
+
+### Python Module Dependencies
+- `python-dateutil`
+- `filedate`
 
 #### dev note
 - https://docs.python.org/3/library/filesys.html

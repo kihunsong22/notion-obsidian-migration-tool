@@ -1,6 +1,7 @@
 import logging
 import logging.handlers
 import os
+import shutil
 from pathlib import Path
 import re
 from dateutil.parser import parse
@@ -12,6 +13,13 @@ logger = logging.getLogger("root")
 SOURCE_PATH = "C:/Notion-export/"
 DEST_PATH = "C:/Notion-export-dest/"  # CAUTION: WILL REMOVE EVERYTHING UNDER THIS DIRECTORY
 CREATE_YAML = True
+
+FILETYPES_TO_COPY=( # gets copied to DEST_PATH without modifications
+    'jpeg',
+    'jpg',
+    'png',
+    'pdf'
+)
 
 def setLogging():
     """logging module setup"""
@@ -56,6 +64,49 @@ def rm_path(d_path):
         elif x.is_file():
             x.unlink()
             logger.debug('rm: "{}"'.format(x.absolute()))
+
+def file_copy(s_path, d_path):
+    """
+    copies the given item to destination path
+    
+    Parameters:
+    item: absolute path to the file
+    s_path: SOURCE_PATH
+    d_path: DEST_PATH
+
+    Returns:
+    """
+
+    pass
+
+def file_touch(d_file):
+    """
+    creates an empty file at destination path
+    
+    Parameters:
+    d_file: absolute path to the destination file
+
+    Returns:
+    """
+
+    dest_dir = d_file.parent()
+
+    if not dest_dir.exists():
+        logger.warn('dest dir not found:"{}"'.format(dest_dir))
+        
+        while not dest_dir.exists():
+            temp_dir = dest_dir
+            while not temp_dir.exists():
+                if(temp_dir.parent.exists()):
+                    logger.debug('creating dest directory: "{}"'.format(temp_dir))
+                    temp_dir.mkdir()
+                else:
+                    temp_dir = temp_dir.parent
+
+    d_file.touch()
+    logger.debug('path to new MD: "{}"'.format(d_file))
+
+    pass
 
 def YAML_front_matter_composer(data: dict):
     """
@@ -167,22 +218,50 @@ def browser(current_path, s_path, d_path):
     s_path: absolute path of SOURCE_INPUT
     d_path: absolute path of DEST_INPUUT
     """
-    for x in current_path.iterdir():
-        if x.is_dir():
-            logger.info('folder: "{}"'.format(x))
-            browser(x, s_path, d_path)
-        elif x.is_file():
-            logger.info('file: "{}"'.format(x))
-            editor(x.absolute(), s_path, d_path)
+    for item in current_path.iterdir():
+        if item.is_dir():
+            logger.info('folder: "{}"'.format(item))
+            browser(item, s_path, d_path)
+        elif item.is_file():
+            logger.info('file: "{}"'.format(item))
+
+            # generate source and destination paths
+            s_file = ''
+            item_path_rel_to_source = item.relative_to(s_path)
+
+            dest_dir = d_path.joinpath(item.relative_to(s_path).parent)
+            dest_file = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
+            
+            if item.endswith('md'):
+                logger.debug('editor: "{}"'.format(item_path_rel_to_source))
+                editor(item.absolute(), s_path, d_path)
+            else:
+                for a in FILETYPES_TO_COPY:
+                    if item.endswith(a):
+                        shutil.copy2(item, )
+                        pass
 
         # exit()  # only iterate once
 
-def editor(item, s_path, d_path):
+def editor2(s_file, d_file):
     """
     parse through item, create updated markdown file in d_path
     
     Parameters:
-    item: absolute path to the markdown file
+    s_file: absolute path to the source markdown file
+    d_file: absolute path to the destination markdown file
+
+    Returns:
+    """
+
+    pass
+
+def editor(s_file, s_path, d_path):
+    """
+    parse through s_file, create updated markdown file in d_path
+    
+    Parameters:
+    s_file: absolute path to the markdown file
     s_path: SOURCE_PATH
     d_path: DEST_PATH
 
@@ -194,13 +273,11 @@ def editor(item, s_path, d_path):
     
     md_body_str = ''
 
-    if(item.exists() == False):
-        logger.error('item does not exist: "{}"'.format(item))
-        exit()  # die
-    
-    logger.debug('editor: "{}"'.format(item.relative_to(s_path)))
+    if(s_file.exists() == False):
+        logger.error('s_file does not exist: "{}"'.format(s_file))
+        exit()
 
-    with item.open(encoding='UTF8') as f:
+    with s_file.open(encoding='UTF8') as f:
         for lines in f.readlines():
             md_body_str += lines
             # logger.debug('lines: "{}"'.format(lines[:-1]))  # remove line break from source
@@ -241,23 +318,10 @@ def editor(item, s_path, d_path):
         'tags': md_tags
     }
 
-    dest_dir = d_path.joinpath(item.relative_to(s_path).parent)
-    dest_file = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
+    dest_dir = d_path.joinpath(s_file.relative_to(s_path).parent)
+    dest_file = d_path.joinpath(s_file.relative_to(s_path)).parent.joinpath(md_title+'.md')
 
-    if not dest_dir.exists():
-        logger.warn('dest dir not found:"{}"'.format(dest_dir))
-        
-        while not dest_dir.exists():
-            temp_dir = dest_dir
-            while not temp_dir.exists():
-                if(temp_dir.parent.exists()):
-                    logger.debug('creating dest directory: "{}"'.format(temp_dir))
-                    temp_dir.mkdir()
-                else:
-                    temp_dir = temp_dir.parent
-
-    dest_file.touch()
-    logger.debug('path to new MD: "{}"'.format(dest_file))
+    file_touch(dest_file)
 
     if CREATE_YAML:
         md_body_str = YAML_front_matter_composer(parsed_data) + '\n' + md_body_str
@@ -290,9 +354,8 @@ def main():
     
     if not Path(DEST_PATH).exists():
         logger.warn('DEST_PATH not found, creating directory...')
-        Path(DEST_PATH).mkdir()        
-
-    rm_path(Path(DEST_PATH))  # clear destination path before proceeding
+        Path(DEST_PATH).mkdir()
+        rm_path(Path(DEST_PATH))  # clear destination path before proceeding
 
     browser(Path(SOURCE_PATH), Path(SOURCE_PATH), Path(DEST_PATH))
 
