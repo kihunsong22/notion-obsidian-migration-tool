@@ -14,7 +14,7 @@ a simple python script to further refine markdown files after using [connertenne
 - [x] option to create YAML style front matter containing title, date, tags
 - [ ] copy images and other data while leaving CSV data generated from Notion
 
-## Notes
+## Notes/Warning
 This script **will remove any files/folders under `SOURCE_DEST`** every time you run it, so proceed with caution.
 
 ### Python Module Dependencies

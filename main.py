@@ -45,25 +45,8 @@ def setLogging():
 
     # logging.basicConfig(filename='python.log', filemode='w', level=logging.DEBUG)
 
-def rm_path(d_path):
-    """
-    remove all files/folders inside of d_path
-    """
-
-    # d_path = Path(d_path)
-
-    logger.debug('rm_path(): "{}"'.format(d_path))
-    # logger.info('disk_usage of d_path: "{}"'.format(shutil.disk_usage(d_path)))
-
-    for x in d_path.iterdir():
-        if x.is_dir():
-            rm_path(x.absolute())
-
-            logger.debug('rmdir: "{}"'.format(x.absolute()))
-            x.rmdir()
-        elif x.is_file():
-            x.unlink()
-            logger.debug('rm: "{}"'.format(x.absolute()))
+def shutil_ignore_files(dir, files):
+    return [f for f in files if os.path.isfile(os.path.join(dir, f))]
 
 def file_copy(s_path, d_path):
     """
@@ -93,15 +76,16 @@ def file_touch(d_file):
 
     if not dest_dir.exists():
         logger.warn('dest dir not found:"{}"'.format(dest_dir))
+        exit()
         
-        while not dest_dir.exists():
-            temp_dir = dest_dir
-            while not temp_dir.exists():
-                if(temp_dir.parent.exists()):
-                    logger.debug('creating dest directory: "{}"'.format(temp_dir))
-                    temp_dir.mkdir()
-                else:
-                    temp_dir = temp_dir.parent
+        # while not dest_dir.exists():
+        #     temp_dir = dest_dir
+        #     while not temp_dir.exists():
+        #         if(temp_dir.parent.exists()):
+        #             logger.debug('creating dest directory: "{}"'.format(temp_dir))
+        #             temp_dir.mkdir()
+        #         else:
+        #             temp_dir = temp_dir.parent
 
     d_file.touch()
     logger.debug('path to new MD: "{}"'.format(d_file))
@@ -218,6 +202,8 @@ def browser(current_path, s_path, d_path):
     s_path: absolute path of SOURCE_INPUT
     d_path: absolute path of DEST_INPUUT
     """
+
+
     for item in current_path.iterdir():
         if item.is_dir():
             logger.info('folder: "{}"'.format(item))
@@ -230,26 +216,41 @@ def browser(current_path, s_path, d_path):
             item_path_rel_to_source = item.relative_to(s_path)
 
             dest_dir = d_path.joinpath(item.relative_to(s_path).parent)
-            dest_file = d_path.joinpath(item.relative_to(s_path)).parent.joinpath(md_title+'.md')
+            dest_file = d_path.joinpath(item.relative_to(s_path))  # only for non-MD files, MD files will have to be renamed
+
+            # logger.debug('DEST_DIR: {}'.format(dest_dir))
+            # logger.debug('DEST_FILE: {}'.format(dest_file))
+            # logger.debug('ITEM: {}'.format(item))
             
-            if item.endswith('md'):
+            if str(item).endswith('.md'):
                 logger.debug('editor: "{}"'.format(item_path_rel_to_source))
                 editor(item.absolute(), s_path, d_path)
+                # editor2(item.absolute(), d_path)
             else:
+                flag_copy = False
                 for a in FILETYPES_TO_COPY:
-                    if item.endswith(a):
-                        shutil.copy2(item, )
-                        pass
+                    if str(item).endswith(a):
+                        flag_copy = True
+                        break
+                
+                if flag_copy:  # known extensions
+                    logger.info('Copying non-MD file: {}'.format(item))
+                    logger.debug('Copying non-MD file to: {}'.format(dest_file))
+
+                    dest_file.parent.mkdir()
+                    shutil.copy2(item, dest_file)
+                else:
+                    logger.debug('Disregarding file: {}'.format(item))
 
         # exit()  # only iterate once
 
-def editor2(s_file, d_file):
+def editor2(s_file, d_dir):
     """
     parse through item, create updated markdown file in d_path
     
     Parameters:
     s_file: absolute path to the source markdown file
-    d_file: absolute path to the destination markdown file
+    d_dir: absolute path to the destination directory
 
     Returns:
     """
@@ -352,10 +353,13 @@ def main():
         logger.warn('SOURCE_PATH not found')
         exit()
     
-    if not Path(DEST_PATH).exists():
-        logger.warn('DEST_PATH not found, creating directory...')
-        Path(DEST_PATH).mkdir()
-        rm_path(Path(DEST_PATH))  # clear destination path before proceeding
+    if Path(DEST_PATH).exists():
+        logger.warn('clearing DEST_PATH first...')
+        shutil.rmtree(DEST_PATH)
+        # rm_path(Path(DEST_PATH))  # clear destination path before proceeding
+        # Path(DEST_PATH).rmdir()
+
+    shutil.copytree(SOURCE_PATH, DEST_PATH, ignore=shutil_ignore_files)
 
     browser(Path(SOURCE_PATH), Path(SOURCE_PATH), Path(DEST_PATH))
 
