@@ -72,20 +72,20 @@ def file_touch(d_file):
     Returns:
     """
 
-    dest_dir = d_file.parent()
+    # dest_dir = d_file.parent()
 
-    if not dest_dir.exists():
-        logger.warn('dest dir not found:"{}"'.format(dest_dir))
-        exit()
+    # if not dest_dir.exists():
+    #     logger.warn('dest dir not found:"{}"'.format(dest_dir))
+    #     exit()
         
-        # while not dest_dir.exists():
-        #     temp_dir = dest_dir
-        #     while not temp_dir.exists():
-        #         if(temp_dir.parent.exists()):
-        #             logger.debug('creating dest directory: "{}"'.format(temp_dir))
-        #             temp_dir.mkdir()
-        #         else:
-        #             temp_dir = temp_dir.parent
+    #     # while not dest_dir.exists():
+    #     #     temp_dir = dest_dir
+    #     #     while not temp_dir.exists():
+    #     #         if(temp_dir.parent.exists()):
+    #     #             logger.debug('creating dest directory: "{}"'.format(temp_dir))
+    #     #             temp_dir.mkdir()
+    #     #         else:
+    #     #             temp_dir = temp_dir.parent
 
     d_file.touch()
     logger.debug('path to new MD: "{}"'.format(d_file))
@@ -118,16 +118,36 @@ def YAML_front_matter_composer(data: dict):
 
 def md_title_checker(title: str):
     """
-    remove markdown style hash, enforce windows file naming scheme
+    - remove markdown style hash
+    - enforce windows file naming scheme
+    - enforce obsidianMD supported filename for internal links
 
     Reference: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file#naming-conventions
     """
-    UNSUPPORTED_CHARS = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+    REPLACE_WITH_DOT = ['"', '/', '\\', '*', '#', '^']
+    REPLACE_WITH_DASH = [':', '|']
+    REPLACE_WITH_L_PARENTHESIS = ['<', '[']
+    REPLACE_WITH_R_PARENTHESIS = ['>', ']']
+    UNSUPPORTED_CHARS = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']  # will remove at the end
+
+    UNSUPPORTED_CHARS_OBSIDIANMD = ['#', '^', '[', ']']
 
     original_title = title
 
     title = title.split('# ')[-1]
-    for c in UNSUPPORTED_CHARS:
+    for c in REPLACE_WITH_DOT:
+        title = title.replace(c, '.')
+
+    for c in REPLACE_WITH_DASH:
+        title = title.replace(c, '-')
+
+    for c in REPLACE_WITH_L_PARENTHESIS:
+        title = title.replace(c, '(')
+
+    for c in REPLACE_WITH_R_PARENTHESIS:
+        title = title.replace(c, ')')
+
+    for c in UNSUPPORTED_CHARS:  # if there's stil unsupported chars, just remove it
         title = title.replace(c, '')
 
     logger.debug('md_title: "{}" -> "{}"'.format(original_title, title))
@@ -237,7 +257,7 @@ def browser(current_path, s_path, d_path):
                     logger.info('Copying non-MD file: {}'.format(item))
                     logger.debug('Copying non-MD file to: {}'.format(dest_file))
 
-                    dest_file.parent.mkdir()
+                    # dest_file.parent.mkdir()
                     shutil.copy2(item, dest_file)
                 else:
                     logger.debug('Disregarding file: {}'.format(item))
@@ -260,6 +280,9 @@ def editor2(s_file, d_dir):
 def editor(s_file, s_path, d_path):
     """
     parse through s_file, create updated markdown file in d_path
+    - update title
+    - update creation date if found
+    - generate tags if found
     
     Parameters:
     s_file: absolute path to the markdown file
@@ -284,43 +307,50 @@ def editor(s_file, s_path, d_path):
             # logger.debug('lines: "{}"'.format(lines[:-1]))  # remove line break from source
 
             # 1. search for title line
-            pattern = re.compile('(# ).+')
-            match = pattern.match(lines)
-            if not(match is None):
-                logger.info('title_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
-                md_title = match.group()
+            if md_title == '':  # only extract the first match
+                pattern = re.compile('(# ).+')
+                match = pattern.match(lines)
+                if not(match is None):
+                    logger.info('title_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
+                    md_title = match.group()
 
             # 2. search for creation date
-            pattern = re.compile('(Created: ).+')
-            match = pattern.match(lines)
-            if not(match is None):
-                logger.info('created_date_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
-                md_creation_date = match.group()
+            if md_creation_date == '':  # only extract the first match
+                pattern = re.compile('(Created: ).+')
+                match = pattern.match(lines)
+                if not(match is None):
+                    logger.info('created_date_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
+                    md_creation_date = match.group()
 
             # 3. search tags
-            pattern = re.compile('(Tags: ).+')
-            match = pattern.match(lines)
-            if not(match is None):
-                logger.info('tags_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
-                md_tags = match.group()
+            if md_tags == '':  # only extract the first match
+                pattern = re.compile('(Tags: ).+')
+                match = pattern.match(lines)
+                if not(match is None):
+                    logger.info('tags_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
+                    md_tags = match.group()
+
+    # compose parsed data
+    parsed_data = {}
 
     # refine the parsed data
     md_title = md_title_checker(md_title)
+    parsed_data.update({'title': md_title})
 
-    md_dt_object = md_cdate_checker(md_creation_date, md_title)
-    # md_creation_time = md_cdate_checker(md_creation_date)
+    if md_creation_date != '':
+        md_dt_object = md_cdate_checker(md_creation_date, md_title)
+        # md_creation_time = md_cdate_checker(md_creation_date)
+        parsed_data.update({'created': md_dt_object.date()})
 
-    md_tags = md_tags_checker(md_tags)
-
-    # compose a dict variable with parsed data
-    parsed_data = {
-        'title': md_title,
-        'created': md_dt_object.date(),
-        'tags': md_tags
-    }
+    if md_tags != '':
+        md_tags = md_tags_checker(md_tags)
+        parsed_data.update({'tags': md_tags})
 
     dest_dir = d_path.joinpath(s_file.relative_to(s_path).parent)
     dest_file = d_path.joinpath(s_file.relative_to(s_path)).parent.joinpath(md_title+'.md')
+
+    # logger.debug('dest_dir: {}'.format(dest_dir))
+    # logger.debug('dest_file: {}'.format(dest_file))
 
     file_touch(dest_file)
 
@@ -333,14 +363,15 @@ def editor(s_file, s_path, d_path):
     # change file access/modification time
     # os.utime(dest_file, (md_dt_object.timestamp(), md_dt_object.timestamp()))
 
-    # change file creation/modification/access time
-    dest_file_meta = filedate.File(dest_file)
-    logger.debug('dest_file: "{}"'.format(dest_file))
-    res = dest_file_meta.set(
-        created = md_dt_object.strftime("%F"),
-        modified = md_dt_object.strftime("%F")
-    )
-    logger.debug('filedate edit res: "{}"'.format(res))
+    if md_creation_date != '':
+        # change file creation/modification/access time
+        dest_file_meta = filedate.File(dest_file)
+        logger.debug('dest_file: "{}"'.format(dest_file))
+        res = dest_file_meta.set(
+            created = md_dt_object.strftime("%F"),
+            modified = md_dt_object.strftime("%F")
+        )
+        logger.debug('filedate edit res: "{}"'.format(res))
 
 
 
