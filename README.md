@@ -6,20 +6,17 @@ a simple python script to further refine markdown files after using [connertenne
 - run the script
 
 ## Roadmap
-- [x] convert file names to match title
-    - [ ] advanced filename checks against windows naming scheme
-- [x] use created date field inside MD file to edit metadata accordingly
-    - [x] use datetime specified on the title first if possible
-- [x] convert notion style tags to obsidian supported hashtags
+- [x] better title for each markdown file
+    - [x] use title field inside MD file if possible
+    - [x] substitute/remove unsupported characters by Windows and ObsidianMD
+    - [ ] advanced filename checks against Windows naming scheme
+- [x] use created date field inside MD file to edit metadata if possible
+- [x] convert notion style tags to YAML style hashtags
 - [x] option to create YAML style front matter containing title, date, tags
-- [ ] copy images and other data while leaving CSV data generated from Notion
+- [ ] fix images and attachments path inside each markdown document
 
 ## Notes/Warning
 This script **will remove any files/folders under `SOURCE_DEST`** every time you run it, so proceed with caution.
-
-### Python Module Dependencies
-- `python-dateutil`
-- `filedate`
 
 #### dev note
 - https://docs.python.org/3/library/filesys.html
