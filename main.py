@@ -48,50 +48,6 @@ def setLogging():
 def shutil_ignore_files(dir, files):
     return [f for f in files if os.path.isfile(os.path.join(dir, f))]
 
-def file_copy(s_path, d_path):
-    """
-    copies the given item to destination path
-    
-    Parameters:
-    item: absolute path to the file
-    s_path: SOURCE_PATH
-    d_path: DEST_PATH
-
-    Returns:
-    """
-
-    pass
-
-def file_touch(d_file):
-    """
-    creates an empty file at destination path
-    
-    Parameters:
-    d_file: absolute path to the destination file
-
-    Returns:
-    """
-
-    # dest_dir = d_file.parent()
-
-    # if not dest_dir.exists():
-    #     logger.warn('dest dir not found:"{}"'.format(dest_dir))
-    #     exit()
-        
-    #     # while not dest_dir.exists():
-    #     #     temp_dir = dest_dir
-    #     #     while not temp_dir.exists():
-    #     #         if(temp_dir.parent.exists()):
-    #     #             logger.debug('creating dest directory: "{}"'.format(temp_dir))
-    #     #             temp_dir.mkdir()
-    #     #         else:
-    #     #             temp_dir = temp_dir.parent
-
-    d_file.touch()
-    logger.debug('path to new MD: "{}"'.format(d_file))
-
-    pass
-
 def YAML_front_matter_composer(data: dict):
     """
     returns YAML front matter string
@@ -237,14 +193,10 @@ def browser(current_path, s_path, d_path):
 
             dest_dir = d_path.joinpath(item.relative_to(s_path).parent)
             dest_file = d_path.joinpath(item.relative_to(s_path))  # only for non-MD files, MD files will have to be renamed
-
-            # logger.debug('DEST_DIR: {}'.format(dest_dir))
-            # logger.debug('DEST_FILE: {}'.format(dest_file))
-            # logger.debug('ITEM: {}'.format(item))
             
             if str(item).endswith('.md'):
                 logger.debug('editor: "{}"'.format(item_path_rel_to_source))
-                editor(item.absolute(), s_path, d_path)
+                editor(item.absolute(), dest_dir)
                 # editor2(item.absolute(), d_path)
             else:
                 flag_copy = False
@@ -257,27 +209,13 @@ def browser(current_path, s_path, d_path):
                     logger.info('Copying non-MD file: {}'.format(item))
                     logger.debug('Copying non-MD file to: {}'.format(dest_file))
 
-                    # dest_file.parent.mkdir()
                     shutil.copy2(item, dest_file)
                 else:
                     logger.debug('Disregarding file: {}'.format(item))
 
         # exit()  # only iterate once
 
-def editor2(s_file, d_dir):
-    """
-    parse through item, create updated markdown file in d_path
-    
-    Parameters:
-    s_file: absolute path to the source markdown file
-    d_dir: absolute path to the destination directory
-
-    Returns:
-    """
-
-    pass
-
-def editor(s_file, s_path, d_path):
+def editor(s_file, d_path):
     """
     parse through s_file, create updated markdown file in d_path
     - update title
@@ -286,6 +224,8 @@ def editor(s_file, s_path, d_path):
     
     Parameters:
     s_file: absolute path to the markdown file
+    d_dir: absolute path to the destination directory for each file
+
     s_path: SOURCE_PATH
     d_path: DEST_PATH
 
@@ -330,29 +270,23 @@ def editor(s_file, s_path, d_path):
                     logger.info('tags_match: "{}" chars, "{}"'.format(match.end()-match.start(), match.group()))
                     md_tags = match.group()
 
-    # compose parsed data
+    # compose/refine parsed data
     parsed_data = {}
-
-    # refine the parsed data
     md_title = md_title_checker(md_title)
     parsed_data.update({'title': md_title})
 
     if md_creation_date != '':
         md_dt_object = md_cdate_checker(md_creation_date, md_title)
-        # md_creation_time = md_cdate_checker(md_creation_date)
         parsed_data.update({'created': md_dt_object.date()})
-
+    
     if md_tags != '':
         md_tags = md_tags_checker(md_tags)
         parsed_data.update({'tags': md_tags})
 
-    dest_dir = d_path.joinpath(s_file.relative_to(s_path).parent)
-    dest_file = d_path.joinpath(s_file.relative_to(s_path)).parent.joinpath(md_title+'.md')
-
-    # logger.debug('dest_dir: {}'.format(dest_dir))
-    # logger.debug('dest_file: {}'.format(dest_file))
-
-    file_touch(dest_file)
+    dest_file = d_path.joinpath(md_title+'.md')
+    
+    dest_file.touch()
+    logger.debug('path to new MD: "{}"'.format(dest_file))
 
     if CREATE_YAML:
         md_body_str = YAML_front_matter_composer(parsed_data) + '\n' + md_body_str
@@ -360,10 +294,10 @@ def editor(s_file, s_path, d_path):
     md_body_bc = md_data_encode(md_body_str)
     dest_file.write_bytes(md_body_bc)
 
-    # change file access/modification time
-    # os.utime(dest_file, (md_dt_object.timestamp(), md_dt_object.timestamp()))
-
     if md_creation_date != '':
+        # change file access/modification time
+        # os.utime(dest_file, (md_dt_object.timestamp(), md_dt_object.timestamp()))
+
         # change file creation/modification/access time
         dest_file_meta = filedate.File(dest_file)
         logger.debug('dest_file: "{}"'.format(dest_file))
@@ -387,8 +321,6 @@ def main():
     if Path(DEST_PATH).exists():
         logger.warn('clearing DEST_PATH first...')
         shutil.rmtree(DEST_PATH)
-        # rm_path(Path(DEST_PATH))  # clear destination path before proceeding
-        # Path(DEST_PATH).rmdir()
 
     shutil.copytree(SOURCE_PATH, DEST_PATH, ignore=shutil_ignore_files)
 
