@@ -14,6 +14,7 @@ a simple python script to further refine markdown files after using [connertenne
 - [x] convert notion style tags to YAML style hashtags
 - [x] option to create YAML style front matter containing title, date, tags
 - [ ] fix images and attachments path inside each markdown document
+- [ ] fix tables being seperated into new pages
 
 ## Notes/Warning
 This script **will remove any files/folders under `SOURCE_DEST`** every time you run it, so proceed with caution.
